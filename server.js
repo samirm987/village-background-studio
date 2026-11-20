@@ -1,64 +1,31 @@
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
-
-const app = express();
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-app.use(express.json({ limit: "2mb" }));
-app.use(express.static(path.join(__dirname, "public")));
-
-const STYLE = "Polished colorful hand-painted 2D cartoon background for Indian village moral-story animation, clean confident outlines, smooth shapes, layered foliage, vivid greens, cyan-blue sky, soft clouds, warm sunlight, professional TV cartoon environment plate, not a photograph.";
-const NEGATIVE = "No people, humans, characters, faces, animals, birds, text, logo, watermark, photorealism, 3D, CGI, anime, sketch, blur, low resolution, distorted buildings.";
-
-app.get("/api/status", (_, res) => res.json({ provider: "Pollinations legacy image endpoint", configured: true, note: "Free anonymous endpoint; strict rate limits may apply." }));
-
-app.post("/api/generate", async (req, res) => {
-  try {
-    const { scene, time, aspect, details } = req.body || {};
-    const ratio = ["16:9", "9:16", "4:3"].includes(aspect) ? aspect : "16:9";
-    const dimensions = ratio === "9:16" ? [432, 768] : ratio === "4:3" ? [640, 480] : [768, 432];
-    const lighting = time === "Night"
-      ? "peaceful moonlit night, deep blue sky, warm glowing windows and lantern light"
-      : "bright sunny daytime, vivid blue sky, soft clouds and warm sunlight";
-    const prompt = `${STYLE}
-SCENE: ${String(scene || "Traditional Indian village courtyard").slice(0, 500)}.
+const app=express(),__dirname=path.dirname(fileURLToPath(import.meta.url));
+app.use(express.json({limit:"2mb"}));app.use(express.static(path.join(__dirname,"public")));
+const STYLE="STRICT ART STYLE: 2D MODERN ULTRA-CLEAN VECTOR CARTOON BACKGROUND for professional Indian village animation. Flat 2D illustration, crisp smooth bold dark outlines, clean geometric shapes, simple readable forms, sharp edges, controlled cel shading with only 2-3 flat shadow tones, bright cheerful saturated colors, polished children's TV animation background, hand-designed vector art. Clear foreground, midground and background layers. Must look like professionally drawn 2D vector cartoon, NOT painting, NOT 3D.";
+const NEGATIVE="photorealistic, photography, 3D, CGI, 3D render, painterly, oil painting, watercolor, blurry brush strokes, anime, Japanese house, Chinese house, Japanese architecture, pagoda, foreign architecture, wooden cabin, western cottage, European village, mountain village, people, humans, characters, faces, animals, birds, text, logo, watermark, gradients, texture noise, blur, depth of field, cinematic photo lighting.";
+app.get("/api/status",(_,res)=>res.json({provider:"Pollinations Flux",configured:true}));
+app.post("/api/generate",async(req,res)=>{try{
+const{scene,time,aspect,details}=req.body||{};const ratio=["16:9","9:16","4:3"].includes(aspect)?aspect:"16:9";
+const dimensions=ratio==="9:16"?[576,1024]:ratio==="4:3"?[768,576]:[1024,576];
+const lighting=time==="Night"?"simple clean 2D night palette, deep navy sky, moon and stars, warm yellow light from Indian village home windows":"bright clean 2D daytime palette, cyan-blue sky, simple soft white cartoon clouds, warm sunlight";
+const prompt=`${STYLE}
+CULTURAL SETTING: Authentic rural village in West Bengal, India. Bengali village environment and architecture only.
+SCENE REQUEST: ${String(scene||"Traditional Bengali village house").slice(0,500)}.
+ARCHITECTURE: Traditional Bengali rural home, single-storey, mud-plastered or lime-washed walls, terracotta tiled or thatched roof as appropriate, shaded front veranda, wooden doors and simple rectangular windows. Indian rural details only. Absolutely no Japanese, Chinese, European or western architecture.
 LIGHTING: ${lighting}.
-COMPOSITION: ${ratio} aspect ratio, cinematic establishing background.
-DETAILS: ${String(details || "").slice(0, 500)}.
-EXCLUSIONS: ${NEGATIVE}
-Generate exactly one image, not a text description.`;
-
-    const url = new URL("https://image.pollinations.ai/prompt/" + encodeURIComponent(prompt));
-    url.searchParams.set("width", String(dimensions[0]));
-    url.searchParams.set("height", String(dimensions[1]));
-    url.searchParams.set("seed", String(Math.floor(Math.random() * 2147483647)));
-
-    const response = await fetch(url, {
-      headers: { "User-Agent": "Mozilla/5.0 VillageBackgroundStudio/1.0", "Accept": "image/*" },
-      signal: AbortSignal.timeout(120000)
-    });
-
-    if (!response.ok) {
-      const message = response.status === 402
-        ? "Pollinations free anonymous limit reached or payment required. Please wait and try later; this service may require payment."
-        : response.status === 429
-          ? "Pollinations is busy or rate-limited. Please wait before trying again."
-          : `Pollinations image service returned HTTP ${response.status}. Please try again later.`;
-      return res.status(response.status === 402 ? 429 : 502).json({ error: message });
-    }
-
-    const contentType = response.headers.get("content-type") || "";
-    if (!contentType.startsWith("image/")) {
-      return res.status(502).json({ error: "Image service did not return an image. Please try again later." });
-    }
-
-    const bytes = Buffer.from(await response.arrayBuffer());
-    if (!bytes.length) return res.status(502).json({ error: "Image service returned an empty image." });
-    res.json({ imageData: `data:${contentType};base64,${bytes.toString("base64")}`, prompt });
-  } catch (error) {
-    res.status(500).json({ error: "Generation failed: " + error.message });
-  }
-});
-
-app.get("*", (_, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
-app.listen(process.env.PORT || 3000, () => console.log("Village Background Studio started with Pollinations"));
+COMPOSITION: ${ratio} aspect ratio, wide clean cartoon environment plate, uncluttered readable composition, clear outlines around every object, no characters.
+USER DETAILS: ${String(details||"").slice(0,500)}.
+NEGATIVE: ${NEGATIVE}
+Output exactly one finished 2D vector cartoon background image.`;
+const url=new URL("https://image.pollinations.ai/prompt/"+encodeURIComponent(prompt));
+url.searchParams.set("model","flux");url.searchParams.set("width",String(dimensions[0]));url.searchParams.set("height",String(dimensions[1]));url.searchParams.set("seed",String(Math.floor(Math.random()*2147483647)));url.searchParams.set("nologo","true");url.searchParams.set("enhance","false");url.searchParams.set("negative_prompt",NEGATIVE);
+const response=await fetch(url,{headers:{"User-Agent":"Mozilla/5.0 VillageBackgroundStudio/1.0","Accept":"image/*"},signal:AbortSignal.timeout(120000)});
+if(!response.ok){const message=response.status===429||response.status===402?"Pollinations free anonymous limit reached or service is busy. Please wait and try again.":`Pollinations returned HTTP ${response.status}. Please try again.`;return res.status(502).json({error:message});}
+const type=response.headers.get("content-type")||"";if(!type.startsWith("image/"))return res.status(502).json({error:"Image service did not return an image."});
+const bytes=Buffer.from(await response.arrayBuffer());if(!bytes.length)return res.status(502).json({error:"Empty image returned."});
+res.json({imageData:`data:${type};base64,${bytes.toString("base64")}`,prompt});
+}catch(e){res.status(500).json({error:"Generation failed: "+e.message});}});
+app.get("*",(_,res)=>res.sendFile(path.join(__dirname,"public","index.html")));
+app.listen(process.env.PORT||3000,()=>console.log("Village Background Studio started with strict 2D Indian vector style"));
