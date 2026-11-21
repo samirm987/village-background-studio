@@ -5,7 +5,7 @@ const app=express(),__dirname=path.dirname(fileURLToPath(import.meta.url));
 app.use(express.json({limit:"45mb"}));app.use(express.static(path.join(__dirname,"public")));
 const STYLE="STRICT ART STYLE: 2D MODERN ULTRA-CLEAN VECTOR CARTOON BACKGROUND for professional Indian village animation. Flat 2D illustration, crisp smooth bold dark outlines, clean geometric shapes, simple readable forms, sharp edges, controlled cel shading with only 2-3 flat shadow tones, bright cheerful saturated colors, polished children's TV animation background, hand-designed vector art. Clear foreground, midground and background layers. Must look like professionally drawn 2D vector cartoon, NOT painting, NOT 3D.";
 const NEGATIVE="photorealistic, photography, 3D, CGI, 3D render, painterly, oil painting, watercolor, blurry brush strokes, anime, Japanese house, Chinese house, pagoda, foreign architecture, wooden cabin, western cottage, European village, people, humans, characters, faces, animals, birds, text, logo, watermark, gradients, texture noise, blur, depth of field, cinematic photo lighting.";
-app.get("/api/status",(_,res)=>res.json({provider:"OVHcloud SDXL anonymous endpoint",configured:true,referenceAnalysisConfigured:true,apiKeyRequired:false}));
+app.get("/api/status",(_,res)=>res.json({provider:"OVHcloud SDXL anonymous endpoint",configured:true,referenceAnalysisConfigured:false,apiKeyRequired:false,referenceMode:"best-effort"}));
 async function describeReferences(images){
  const descriptions=[];
  for(const image of images){
@@ -24,7 +24,7 @@ app.post("/api/generate",async(req,res)=>{try{
  const ratio=["16:9","9:16","4:3"].includes(aspect)?aspect:"16:9";
  if(!Array.isArray(references)||references.length>10)return res.status(400).json({error:"Upload up to 10 reference images."});
  for(const image of references){if(!image||typeof image.data!=="string"||!/^data:image\/(png|jpeg|webp);base64,/.test(image.data)||image.data.length>4.2*1024*1024)return res.status(400).json({error:"Each reference must be a PNG, JPG or WEBP image under 3 MB."});}
- const referenceNotes=references.length?await describeReferences(references):"No reference images supplied.";
+ let referenceNotes="No reference images supplied.";\n let referenceWarning="";\n if(references.length){\n  try{referenceNotes=await describeReferences(references);}\n  catch(error){referenceWarning="Reference analyzer unavailable; generated from your written prompt only. Uploaded reference images were not applied.";referenceNotes="Reference-image analysis unavailable. Follow the written scene request and the fixed Indian village 2D vector style only.";console.warn("Reference analyzer unavailable:",error.message);}\n }
  const lighting=time==="Night"?"simple clean 2D night palette, deep navy sky, moon and stars, warm yellow light from village home windows":"bright clean 2D daytime palette, cyan-blue sky, simple soft white cartoon clouds, warm sunlight";
  const prompt=`${STYLE}
 PRIMARY VISUAL REFERENCES (analyzed from user-uploaded images; follow closely): ${referenceNotes}
@@ -42,7 +42,7 @@ Output exactly one finished 2D vector cartoon background image.`;
  const type=response.headers.get("content-type")||"image/jpeg";
  if(type.includes("application/json")){const body=await response.json();return res.status(502).json({error:body?.message||body?.error||"Image provider did not return image bytes."});}
  const bytes=Buffer.from(await response.arrayBuffer());if(!bytes.length)return res.status(502).json({error:"Image service returned an empty image."});
- res.json({imageData:`data:${type};base64,${bytes.toString("base64")}`,prompt,referenceCount:references.length});
+ res.json({imageData:`data:${type};base64,${bytes.toString("base64")}`,prompt,referenceCount:references.length,referenceWarning});
  }catch(e){res.status(500).json({error:"Generation failed: "+e.message});}});
 app.get("*",(_,res)=>res.sendFile(path.join(__dirname,"public","index.html")));
-app.listen(process.env.PORT||3000,()=>console.log("Village Background Studio started with free no-key image and reference services"));
+app.listen(process.env.PORT||3000,()=>console.log("Village Background Studio started with free no-key image service; reference analysis is best-effort"));
