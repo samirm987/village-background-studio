@@ -21,7 +21,7 @@ app.post("/api/generate",async(req,res)=>{try{
  const{scene,time,aspect,details,references=[]}=req.body||{};
  const ratio=["16:9","9:16","4:3"].includes(aspect)?aspect:"16:9";
  if(!Array.isArray(references)||references.length>10)return res.status(400).json({error:"Upload up to 10 reference images."});
- for(const image of references){if(!image||typeof image.data!=="string"||!/^data:image\/(png|jpeg|webp);base64,/.test(image.data)||image.data.length>8*1024*1024)return res.status(400).json({error:"Each reference must be a PNG, JPG or WEBP image under 6 MB."});}
+ for(const image of references){if(!image||typeof image.data!=="string"||!/^data:image\/(png|jpeg|webp);base64,/.test(image.data)||image.data.length>4.2*1024*1024)return res.status(400).json({error:"Each reference must be a PNG, JPG or WEBP image under 3 MB."});}
  const referenceNotes=references.length?await describeReferences(references):"No reference images supplied.";
  const lighting=time==="Night"?"simple clean 2D night palette, deep navy sky, moon and stars, warm yellow light from village home windows":"bright clean 2D daytime palette, cyan-blue sky, simple soft white cartoon clouds, warm sunlight";
  const prompt=`${STYLE}
